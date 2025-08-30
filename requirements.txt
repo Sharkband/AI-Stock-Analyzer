@@ -1,0 +1,21 @@
+# Core ML and Data Science
+torch>=2.0.0
+pandas>=1.5.0
+numpy>=1.21.0
+scikit-learn>=1.0.0
+
+# API Framework
+fastapi>=0.100.0
+uvicorn[standard]>=0.20.0
+
+# Stock data
+yfinance>=0.2.0
+
+# Data processing
+pydantic>=2.0.0
+python-multipart>=0.0.6
+aiofiles>=0.8.0
+
+# Optional - install separately if needed
+# ta-lib  # Skip this for now
+# plotly>=5.0.0

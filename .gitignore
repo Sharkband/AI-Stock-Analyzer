@@ -1,0 +1,6 @@
+venv/
+.env/
+.venv/
+env/
+stock_analyzer_env/
+__pycache__/
