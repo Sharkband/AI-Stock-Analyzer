@@ -4,3 +4,5 @@ venv/
 env/
 stock_analyzer_env/
 __pycache__/
+saved_models/
+best_model.pth

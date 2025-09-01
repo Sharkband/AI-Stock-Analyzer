@@ -480,43 +480,55 @@ class StockAnalyzer:
         """Predict future stock prices"""
         if self.model is None:
             raise ValueError("Model not trained. Call train_on_stock first.")
-            
+        
         # Fetch recent data
         df = self.fetch_stock_data(symbol, period='3mo')
         df = self.processor.add_technical_indicators(df)
         features_df = self.processor.prepare_features(df)
         
-        # Use last sequence for prediction
-        last_sequence = features_df.values[-self.sequence_length:]
-        last_sequence_scaled = self.processor.scaler.transform(last_sequence)
+        sequence = features_df.values[-self.sequence_length:]
+        sequence_scaled = self.processor.scaler.transform(sequence)
         
-        # Convert to tensor
-        X_pred = torch.FloatTensor(last_sequence_scaled).unsqueeze(0)
+        predictions_scaled = []
+        current_sequence = sequence_scaled.copy()
         
-        # Make prediction
-        prediction_scaled = self.trainer.predict(X_pred)
+        for _ in range(days_ahead):
+            X_pred = torch.FloatTensor(current_sequence).unsqueeze(0)
+            pred_scaled = self.trainer.predict(X_pred)  # assuming shape (1,1)
+            predictions_scaled.append(pred_scaled[0, 0])
+            
+            # Append prediction and remove first element to slide window forward
+            next_input = np.zeros(current_sequence.shape[1])
+            next_input[3] = pred_scaled[0, 0]  # assuming target is at index 3
+            current_sequence = np.vstack([current_sequence[1:], next_input])
         
-        # Inverse transform (approximate)
-        # Note: This assumes Close price is at index 3 in features
-        dummy_array = np.zeros((1, len(self.processor.feature_columns)))
-        dummy_array[0, 3] = prediction_scaled[0, 0]
-        prediction = self.processor.scaler.inverse_transform(dummy_array)[0, 3]
+        # Inverse scale predictions
+        predictions = []
+        for pred_scaled in predictions_scaled:
+            dummy = np.zeros((1, features_df.shape[1]))
+            dummy[0, 3] = pred_scaled
+            pred = self.processor.scaler.inverse_transform(dummy)[0, 3]
+            predictions.append(pred)
         
         current_price = df['Close'].iloc[-1]
-        price_change = prediction - current_price
+        predicted_price = predictions[-1]  # last predicted day
+        price_change = predicted_price - current_price
         percent_change = (price_change / current_price) * 100
+        last_updated = df.index[-1]
         
         return {
             'symbol': symbol,
             'current_price': current_price,
-            'predicted_price': prediction,
+            'predicted_price': predicted_price,
             'price_change': price_change,
             'percent_change': percent_change,
-            'confidence': self.calculate_confidence(df)
+            'confidence': self.calculate_confidence(df),
+            'last_updated' : last_updated
         }
         
     def calculate_confidence(self, df: pd.DataFrame) -> float:
         """Calculate prediction confidence based on recent volatility"""
+    
         recent_volatility = df['Close'].pct_change().tail(20).std()
         # Lower volatility = higher confidence
         confidence = max(0.1, min(0.9, 1 - (recent_volatility * 10)))

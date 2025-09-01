@@ -39,7 +39,7 @@ app = FastAPI(
 # CORS middleware for React frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],  # React dev server
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:3000"],  # React dev server
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -82,6 +82,7 @@ class PredictionResponse(BaseModel):
     confidence: float
     model_type: str
     timestamp: str
+    last_updated : str
 
 class StockDataResponse(BaseModel):
     symbol: str
@@ -307,6 +308,7 @@ async def predict_stock_price(request: PredictionRequest):
     symbol = request.symbol.upper()
     model_key = f"{symbol}_{request.model_type}"
     
+    
     try:
         # Try to get model from memory first
         analyzer = None
@@ -324,7 +326,9 @@ async def predict_stock_price(request: PredictionRequest):
         
         # Make prediction
         prediction = analyzer.predict_next_price(symbol, request.days_ahead)
-        
+        print(request.days_ahead)
+        print(prediction["predicted_price"])
+
         return PredictionResponse(
             symbol=symbol,
             current_price=prediction["current_price"],
@@ -333,7 +337,8 @@ async def predict_stock_price(request: PredictionRequest):
             percent_change=prediction["percent_change"],
             confidence=prediction["confidence"],
             model_type=request.model_type,
-            timestamp=datetime.now().isoformat()
+            timestamp=datetime.now().isoformat(),
+            last_updated = prediction["last_updated"].strftime("%Y-%m-%d %H:%M:%S")
         )
     
     except Exception as e:
