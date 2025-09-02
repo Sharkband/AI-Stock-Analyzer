@@ -1,6 +1,11 @@
 # AI-Stock-Analyzer
 This app creates AI Stock models so you can predict stock prices in the next 30 days.
 
+demo:
+
+https://youtu.be/jYVqolnyd4M
+
+
 to run using docker:
 
  # build image
