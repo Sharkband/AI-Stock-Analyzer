@@ -8,6 +8,8 @@ from datetime import datetime, timedelta
 import os
 import pickle
 import uvicorn
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 import sys
 script_dir = os.path.dirname(os.path.abspath(__file__))  # api directory
@@ -44,6 +46,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.mount("/assets", StaticFiles(directory="static/assets"), name="assets")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Global variables for model management
 trained_models = {}
@@ -158,15 +163,16 @@ def load_model(symbol: str, model_type: str) -> Optional[StockAnalyzer]:
 
 # API Routes
 
-@app.get("/", response_model=Dict[str, str])
-async def root():
-    """Root endpoint with API information"""
-    return {
-        "message": "AI Stock Analyzer API",
-        "version": "1.0.0",
-        "docs": "/docs",
-        "health": "/health"
-    }
+#@app.get("/", response_model=Dict[str, str])
+#async def root():
+    #"""Root endpoint with API information"""
+    #return {
+        #"message": "AI Stock Analyzer API",
+        #"version": "1.0.0",
+        #"docs": "/docs",
+        #"health": "/health"
+    #}
+
 
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
@@ -447,6 +453,10 @@ async def market_overview():
             overview[name] = {"error": str(e)}
     
     return overview
+
+@app.get("/{full_path:path}")
+async def serve_react_app(full_path: str):
+    return FileResponse("static/index.html")
 
 # Error handlers
 @app.exception_handler(404)
